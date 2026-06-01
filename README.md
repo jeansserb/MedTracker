@@ -1,50 +1,64 @@
-# Welcome to your Expo app 👋
+# MedTracker 💊
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Um aplicativo moderno, intuitivo e robusto para gerenciar a rotina de medicamentos. Construído com **React Native (Expo)**, o MedTracker foi desenvolvido com foco absoluto em usabilidade, performance offline e acessibilidade (suporte nativo a Tema Claro/Escuro).
 
-## Get started
+<div align="center">
+  <!-- Adicione suas screenshots reais aqui futuramente -->
+  <img src="https://via.placeholder.com/250x500.png?text=Agenda+Diária" width="200" />
+  <img src="https://via.placeholder.com/250x500.png?text=Desempenho" width="200" />
+  <img src="https://via.placeholder.com/250x500.png?text=Dark+Mode" width="200" />
+</div>
 
-1. Install dependencies
+## ✨ Funcionalidades Principais
 
-   ```bash
-   npm install
-   ```
+- 📅 **Agenda Inteligente**: Algoritmo avançado de Janela Deslizante (Sliding Window) que calcula retroativamente e futuramente as doses exatas baseadas na frequência e duração do tratamento.
+- 🎨 **UI/UX Premium**: Design polido, animações responsivas e cores semânticas que se adaptam perfeitamente ao tema do sistema do usuário (Dark Mode).
+- 📊 **Dashboard de Desempenho (Adesão)**: Calendário interativo que plota um "Mapa de Calor" de adesão ao tratamento (100% de sucesso = Verde, Atrasos/Pulos = Vermelho/Cinza).
+- 💾 **Offline-First**: Armazenamento de dados local persistente e ultrarrápido garantido pelo `AsyncStorage`. Sem necessidade de internet para registrar ou checar horários!
+- 🔄 **Controle Completo**: Interrompa tratamentos, retome, dispense doses específicas, corrija erros desfazendo marcações e gerencie o histórico.
 
-2. Start the app
+## 🛠️ Stack Tecnológica
 
-   ```bash
-   npx expo start
-   ```
+- **Framework:** React Native / Expo
+- **Navegação:** Expo Router (File-based Routing)
+- **Linguagem:** TypeScript
+- **Estilização:** StyleSheet nativo + Design System Local (`constants/theme`)
+- **Armazenamento:** `@react-native-async-storage/async-storage`
+- **UI Components:** `react-native-calendars`, `@expo/vector-icons`, `@react-native-picker/picker`, `@react-native-community/datetimepicker`
 
-In the output, you'll find options to open the app in a
+## 🧠 Arquitetura do Motor Lógico (`storage.ts`)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+O grande desafio do aplicativo foi criar um banco de dados local "sem servidor" que não lotasse a memória do celular com milhares de notificações futuras vazias. A solução foi projetar o `storage.ts` como a única fonte da verdade (Single Source of Truth).
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+O algoritmo calcula as doses em tempo real usando a lógica de **Janela Deslizante**. Ao invés de salvar "50 doses" no momento do cadastro, o app guarda apenas as "regras do jogo" (Data de Início, Frequência, Duração) e um "Livro Razão" (Ledger) contendo as ações explícitas do usuário (Tomei, Pulei). 
+Quando você abre o aplicativo, ele junta essas duas pontas e projeta a grade horária milimetricamente correta.
 
-## Get a fresh project
+## 🚀 Como Executar o Projeto
 
-When you're ready, run:
-
+1. Clone este repositório:
 ```bash
-npm run reset-project
+git clone https://github.com/jeansserb/MedTracker.git
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Instale as dependências:
+```bash
+npm install
+```
 
-## Learn more
+3. Inicie o servidor de desenvolvimento:
+```bash
+npx expo start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+4. Pressione `a` para abrir no Emulador Android, `i` para abrir no Simulador iOS, ou escaneie o código QR com o app **Expo Go** no seu celular físico.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## 📱 Publicação nas Lojas
 
-## Join the community
+Este aplicativo está pronto para ser compilado via **EAS (Expo Application Services)**.
 
-Join our community of developers creating universal apps.
+- **Para Android:** Gere o arquivo instalável (`.apk`) gratuitamente rodando `eas build -p android --profile preview`.
+- **Para iOS:** O deploy para iOS exige uma conta ativa de Desenvolvedor da Apple e a configuração dos certificados através do `eas build -p ios`.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 👨‍💻 Desenvolvedor
+
+Criado por [Jean Serb](https://github.com/jeansserb) com foco em solucionar um problema real de adesão medicamentosa.
