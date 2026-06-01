@@ -61,4 +61,4 @@ Este aplicativo está pronto para ser compilado via **EAS (Expo Application Serv
 
 ## 👨‍💻 Desenvolvedor
 
-Criado por [Jean Serb](https://github.com/jeansserb) com foco em solucionar um problema real de adesão medicamentosa.
+Criado por [Jeansser Barcelos](https://github.com/jeansserb) com foco em solucionar um problema real de adesão medicamentosa.
