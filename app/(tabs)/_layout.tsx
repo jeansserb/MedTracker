@@ -1,14 +1,15 @@
 import { Tabs } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useThemeColor } from '../../constants/Colors';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const theme = useThemeColor();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#10b981', // A soothing, vibrant teal
         headerShown: false,
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.tabIconDefault,
@@ -17,8 +18,8 @@ export default function TabLayout() {
           borderTopColor: theme.border,
           elevation: 0,
           shadowOpacity: 0,
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 8,
         },
         tabBarLabelStyle: {
