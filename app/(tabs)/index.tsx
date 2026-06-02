@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { getAgendaDoses, DailyDose } from '../../utils/storage';
+import { useThemeColor } from '../../constants/Colors';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const theme = useThemeColor();
   const [doses, setDoses] = useState<DailyDose[]>([]);
 
   const dateObj = new Date();
@@ -50,15 +52,15 @@ export default function HomeScreen() {
   const medGroups = Object.values(groupedDoses);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.dateText}>Próximas Doses</Text>
-        <Text style={styles.subtitle}>Sua agenda de medicamentos</Text>
+        <Text style={[styles.dateText, { color: theme.text }]}>Próximas Doses</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Sua agenda de medicamentos</Text>
       </View>
 
       <View style={styles.listContainer}>
         {medGroups.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhuma dose pendente ou atrasada.</Text>
+          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Nenhuma dose pendente ou atrasada.</Text>
         ) : null}
 
         {medGroups.map((group) => {
@@ -81,6 +83,7 @@ export default function HomeScreen() {
               <TouchableOpacity 
                 style={[
                   styles.card, 
+                  { backgroundColor: theme.card },
                   isTaken && styles.cardTaken,
                   isDelayed && styles.cardDelayed,
                   isDismissed && styles.cardDismissed
@@ -89,14 +92,15 @@ export default function HomeScreen() {
                 onPress={() => handlePressDose(primaryDose)}
               >
                 <View style={styles.cardHeader}>
-                  <View style={styles.timeContainer}>
+                  <View style={[styles.timeContainer, { backgroundColor: theme.inputBackground }]}>
                     <FontAwesome5 
                       name="clock" 
                       size={14} 
-                      color={isDelayed ? '#ef4444' : isTaken ? '#10b981' : isDismissed ? '#9ca3af' : '#6b7280'} 
+                      color={isDelayed ? theme.danger : isTaken ? theme.success : isDismissed ? theme.textSecondary : theme.textSecondary} 
                     />
                     <Text style={[
                       styles.timeText, 
+                      { color: theme.text },
                       isTaken && styles.timeTextTaken,
                       isDelayed && styles.timeTextDelayed,
                       isDismissed && styles.timeTextDismissed
@@ -117,6 +121,7 @@ export default function HomeScreen() {
                 </View>
                 <Text style={[
                   styles.medName, 
+                  { color: theme.text },
                   isTaken && styles.medNameTaken,
                   isDismissed && styles.medNameDismissed,
                   isDelayed && styles.medNameDelayed
@@ -148,26 +153,28 @@ export default function HomeScreen() {
                         <View style={styles.timelineConnector}>
                           <View style={[
                             styles.timelineDot,
-                            subTaken && { backgroundColor: '#10b981', borderColor: '#10b981' },
-                            subDelayed && { backgroundColor: '#ef4444', borderColor: '#ef4444' },
-                            subDismissed && { backgroundColor: 'transparent', borderColor: '#9ca3af' }
+                            { backgroundColor: theme.card, borderColor: theme.border },
+                            subTaken && { backgroundColor: theme.success, borderColor: theme.success },
+                            subDelayed && { backgroundColor: theme.danger, borderColor: theme.danger },
+                            subDismissed && { backgroundColor: 'transparent', borderColor: theme.textSecondary }
                           ]}>
                             {subTaken && <FontAwesome5 name="check" size={8} color="#fff" />}
-                            {subDismissed && <FontAwesome5 name="times" size={8} color="#9ca3af" />}
+                            {subDismissed && <FontAwesome5 name="times" size={8} color={theme.textSecondary} />}
                           </View>
-                          {idx !== group.length - 1 && <View style={styles.timelineLine} />}
+                          {idx !== group.length - 1 && <View style={[styles.timelineLine, { backgroundColor: theme.border }]} />}
                         </View>
                         
                         <View style={styles.timelineContent}>
                           <Text style={[
                             styles.timelineTime,
-                            subTaken && { color: '#10b981' },
-                            subDelayed && { color: '#ef4444' },
-                            subDismissed && { color: '#9ca3af', textDecorationLine: 'line-through' }
+                            { color: theme.text },
+                            subTaken && { color: theme.success },
+                            subDelayed && { color: theme.danger },
+                            subDismissed && { color: theme.textSecondary, textDecorationLine: 'line-through' }
                           ]}>
                             {dose.scheduledDateTime.getHours().toString().padStart(2, '0')}:{dose.scheduledDateTime.getMinutes().toString().padStart(2, '0')}
                           </Text>
-                          <Text style={styles.timelineStatus}>
+                          <Text style={[styles.timelineStatus, { color: theme.textSecondary }]}>
                             {subTaken ? 'Tomado' : subDelayed ? 'Atrasado' : subDismissed ? 'Dispensado' : 'Agendado'}
                           </Text>
                         </View>
@@ -251,9 +258,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  delayedCard: {
-    borderColor: theme.dangerBackground,
-    backgroundColor: theme.card,
+  cardDismissed: {
+    backgroundColor: '#f9fafb',
+    borderLeftColor: '#9ca3af',
+    elevation: 0,
+    shadowOpacity: 0,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -265,7 +274,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: theme.inputBackground,
+    backgroundColor: '#f3f4f6',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -273,16 +282,45 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.text,
+    color: '#1f2937',
+  },
+  timeTextTaken: { textDecorationLine: 'line-through', color: '#059669' },
+  timeTextDelayed: { color: '#ef4444' },
+  timeTextDismissed: { textDecorationLine: 'line-through', color: '#9ca3af' },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  checkboxChecked: {
+    backgroundColor: '#10b981',
+    borderColor: '#10b981',
+  },
+  checkboxDelayed: {
+    backgroundColor: '#ef4444',
+    borderColor: '#ef4444',
+  },
+  checkboxDismissed: {
+    backgroundColor: '#f3f4f6',
+    borderColor: '#9ca3af',
+  },
+  delayedCard: {
+    borderColor: '#fee2e2',
+    backgroundColor: '#ffffff',
   },
   delayedText: {
-    color: theme.danger,
+    color: '#ef4444',
   },
   delayedBadge: {
     fontSize: 12,
     fontWeight: '800',
-    color: theme.danger,
-    backgroundColor: theme.dangerBackground,
+    color: '#ef4444',
+    backgroundColor: '#fee2e2',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -298,7 +336,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: theme.infoBackground,
+    backgroundColor: '#dbeafe',
     justifyContent: 'center',
     alignItems: 'center',
   },
