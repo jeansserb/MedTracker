@@ -3,11 +3,15 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, KeyboardAvo
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
+import { FontAwesome5 } from '@expo/vector-icons';
 import { getMedications, updateMedication, getLogs } from '../utils/storage';
+import { useThemeColor } from '../constants/Colors';
 
 export default function EditMedicationScreen() {
   const router = useRouter();
   const { medId } = useLocalSearchParams();
+  const theme = useThemeColor();
+  const styles = getStyles(theme);
   
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -27,6 +31,15 @@ export default function EditMedicationScreen() {
   const [frequencyHours, setFrequencyHours] = useState('24');
   const [isContinuous, setIsContinuous] = useState(true);
   const [durationDays, setDurationDays] = useState('5');
+  
+  const [originalIsContinuous, setOriginalIsContinuous] = useState(true);
+  const [originalDurationDays, setOriginalDurationDays] = useState('0');
+
+  const HelpTooltip = ({ text }: { text: string }) => (
+    <TouchableOpacity onPress={() => Alert.alert('Informação', text)} style={{ marginLeft: 6, marginBottom: 8, marginTop: 16 }}>
+      <FontAwesome5 name="question-circle" size={14} color={theme.textSecondary} />
+    </TouchableOpacity>
+  );
 
   useEffect(() => {
     const loadMedication = async () => {
@@ -38,7 +51,11 @@ export default function EditMedicationScreen() {
         if (med.route) setRoute(med.route);
         setFrequencyHours(med.frequencyHours.toString());
         setIsContinuous(med.isContinuous);
-        if (med.durationDays) setDurationDays(med.durationDays.toString());
+        setOriginalIsContinuous(med.isContinuous);
+        if (med.durationDays) {
+          setDurationDays(med.durationDays.toString());
+          setOriginalDurationDays(med.durationDays.toString());
+        }
         
         if (med.startDate) {
           const [year, month, day] = med.startDate.split('-').map(Number);
@@ -88,6 +105,10 @@ export default function EditMedicationScreen() {
     }
     
     if (!isContinuous) {
+      if (!originalIsContinuous && parseInt(durationDays, 10) < parseInt(originalDurationDays, 10)) {
+        Alert.alert('Atenção', 'A duração do tratamento só pode ser aumentada ou mantida igual, não pode ser diminuída.');
+        return;
+      }
       const logs = await getLogs();
       const medLogs = logs.filter(l => l.medicationId === medId && (l.status === 'taken' || l.status === 'dismissed'));
       if (medLogs.length > 0) {
@@ -104,7 +125,10 @@ export default function EditMedicationScreen() {
     const minutes = time.getMinutes().toString().padStart(2, '0');
     const timeString = `${hours}:${minutes}`;
 
-    const dateString = startDate.toISOString().split('T')[0];
+    const year = startDate.getFullYear();
+    const month = String(startDate.getMonth() + 1).padStart(2, '0');
+    const day = String(startDate.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
 
     const frequencyStr = frequencyHours === '24' ? '1x ao dia (24/24h)' : 
                          frequencyHours === '12' ? '2x ao dia (12/12h)' :
@@ -178,13 +202,19 @@ export default function EditMedicationScreen() {
 
         <View style={styles.row}>
           <View style={styles.halfWidth}>
-            <Text style={styles.label}>Data de Início (Bloqueado)</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+               <Text style={styles.label}>Data de Início</Text>
+               <HelpTooltip text="A data de início da primeira dose não pode ser editada para não quebrar o histórico passado." />
+            </View>
             <View style={[styles.inputPicker, styles.disabledInput]}>
               <Text style={styles.disabledText}>{startDate.toLocaleDateString('pt-BR')}</Text>
             </View>
           </View>
           <View style={styles.halfWidth}>
-            <Text style={styles.label}>Hora da 1ª Dose (Bloqueado)</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+               <Text style={styles.label}>Hora da 1ª Dose</Text>
+               <HelpTooltip text="A hora inicial da medicação também é permanente." />
+            </View>
             <View style={[styles.inputPicker, styles.disabledInput]}>
               <Text style={styles.disabledText}>
                 {time.getHours().toString().padStart(2, '0')}:{time.getMinutes().toString().padStart(2, '0')}
@@ -193,7 +223,10 @@ export default function EditMedicationScreen() {
           </View>
         </View>
 
-        <Text style={styles.label}>Frequência (Bloqueado)</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+           <Text style={styles.label}>Frequência</Text>
+           <HelpTooltip text="A frequência de horas entre as doses (ex: de 8 em 8 horas) não pode ser alterada no histórico." />
+        </View>
         <View style={[styles.inputPicker, styles.disabledInput]}>
           <Text style={styles.disabledText}>
             {frequencyHours === '24' ? '1x ao dia (a cada 24h)' : 
@@ -203,12 +236,32 @@ export default function EditMedicationScreen() {
         </View>
 
         <View style={styles.switchContainer}>
-          <Text style={styles.labelSwitch}>Uso contínuo (sem data fim)</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+             <Text style={styles.labelSwitch}>Uso contínuo (sem data fim)</Text>
+             <TouchableOpacity onPress={() => Alert.alert('Informação', 'Se o medicamento for de uso contínuo, ele não terá uma data de término e continuará gerando doses na sua agenda.')} style={{ marginLeft: 6 }}>
+                <FontAwesome5 name="question-circle" size={14} color={theme.textSecondary} />
+             </TouchableOpacity>
+          </View>
           <Switch
+            disabled={originalIsContinuous}
             value={isContinuous}
-            onValueChange={setIsContinuous}
-            trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
-            thumbColor={isContinuous ? '#3b82f6' : '#f3f4f6'}
+            onValueChange={(val) => {
+              if (val && !originalIsContinuous) {
+                Alert.alert(
+                  'Aviso Irreversível',
+                  'Se você alterar o medicamento para uso contínuo e salvar, essa ação NÃO poderá ser desfeita futuramente. Deseja marcar como contínuo agora?',
+                  [
+                    { text: 'Cancelar', style: 'cancel' },
+                    { text: 'Sim', onPress: () => setIsContinuous(true), style: 'destructive' }
+                  ]
+                );
+              } else {
+                setIsContinuous(val);
+              }
+            }}
+            trackColor={{ false: theme.disabled, true: theme.infoBackground }}
+            thumbColor={isContinuous ? theme.primary : theme.inputBackground}
+            style={{ opacity: 0.7 }}
           />
         </View>
 
@@ -242,10 +295,10 @@ export default function EditMedicationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.background,
   },
   content: {
     padding: 24,
@@ -262,45 +315,52 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.text,
     marginBottom: 8,
     marginTop: 16,
   },
   input: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.inputBackground,
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: '#1f2937',
+    color: theme.text,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
   inputPicker: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.inputBackground,
     borderRadius: 12,
     padding: 16,
     justifyContent: 'center',
     height: 55,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
   disabledInput: {
-    backgroundColor: '#e5e7eb',
+    backgroundColor: theme.disabled,
     opacity: 0.7,
   },
   inputText: {
     fontSize: 16,
-    color: '#1f2937',
+    color: theme.text,
   },
   disabledText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: theme.disabledText,
   },
   pickerContainer: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.inputBackground,
     borderRadius: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: theme.border,
+    height: Platform.OS === 'ios' ? 150 : 55,
   },
   picker: {
-    height: 55,
+    height: Platform.OS === 'ios' ? 150 : 55,
     width: '100%',
-    color: '#1f2937',
+    color: theme.text,
   },
   switchContainer: {
     flexDirection: 'row',
@@ -309,34 +369,34 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: theme.border,
   },
   labelSwitch: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.text,
   },
   hintBox: {
     marginTop: 16,
-    backgroundColor: '#ecfdf5',
+    backgroundColor: theme.successBackground,
     padding: 16,
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#10b981',
+    borderLeftColor: theme.success,
   },
   hintText: {
     fontSize: 14,
-    color: '#047857',
+    color: theme.success,
     fontWeight: '600',
     textAlign: 'center',
   },
   button: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: theme.primary,
     borderRadius: 16,
     padding: 18,
     alignItems: 'center',
     marginTop: 40,
-    shadowColor: '#3b82f6',
+    shadowColor: theme.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

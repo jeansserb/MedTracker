@@ -8,6 +8,7 @@ import { useThemeColor } from '../../constants/Colors';
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useThemeColor();
+  const styles = getStyles(theme);
   const [doses, setDoses] = useState<DailyDose[]>([]);
 
   const dateObj = new Date();
@@ -54,7 +55,7 @@ export default function HomeScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={[styles.dateText, { color: theme.text }]}>Próximas Doses</Text>
+        <Text style={styles.title}>Próximas Doses</Text>
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Sua agenda de medicamentos</Text>
       </View>
 
@@ -83,7 +84,6 @@ export default function HomeScreen() {
               <TouchableOpacity 
                 style={[
                   styles.card, 
-                  { backgroundColor: theme.card },
                   isTaken && styles.cardTaken,
                   isDelayed && styles.cardDelayed,
                   isDismissed && styles.cardDismissed
@@ -91,6 +91,12 @@ export default function HomeScreen() {
                 activeOpacity={0.7}
                 onPress={() => handlePressDose(primaryDose)}
               >
+                <View style={[
+                  styles.accentBar, 
+                  isTaken && { backgroundColor: theme.success },
+                  isDelayed && { backgroundColor: theme.danger },
+                  isDismissed && { backgroundColor: theme.textSecondary }
+                ]} />
                 <View style={styles.cardHeader}>
                   <View style={[styles.timeContainer, { backgroundColor: theme.inputBackground }]}>
                     <FontAwesome5 
@@ -165,18 +171,22 @@ export default function HomeScreen() {
                         </View>
                         
                         <View style={styles.timelineContent}>
-                          <Text style={[
-                            styles.timelineTime,
-                            { color: theme.text },
-                            subTaken && { color: theme.success },
-                            subDelayed && { color: theme.danger },
-                            subDismissed && { color: theme.textSecondary, textDecorationLine: 'line-through' }
-                          ]}>
-                            {dose.scheduledDateTime.getHours().toString().padStart(2, '0')}:{dose.scheduledDateTime.getMinutes().toString().padStart(2, '0')}
-                          </Text>
-                          <Text style={[styles.timelineStatus, { color: theme.textSecondary }]}>
-                            {subTaken ? 'Tomado' : subDelayed ? 'Atrasado' : subDismissed ? 'Dispensado' : 'Agendado'}
-                          </Text>
+                          <View style={styles.timelineBox}>
+                            <Text style={[
+                              styles.timelineTime,
+                              subTaken && { color: theme.success },
+                              subDelayed && { color: theme.danger },
+                              subDismissed && { color: theme.textSecondary, textDecorationLine: 'line-through' }
+                            ]}>
+                              {dose.scheduledDateTime.getHours().toString().padStart(2, '0')}:{dose.scheduledDateTime.getMinutes().toString().padStart(2, '0')}
+                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              {subTaken && <Text style={styles.badgeGreen}>Tomado</Text>}
+                              {subDelayed && <Text style={styles.badgeRed}>Atrasado</Text>}
+                              {subDismissed && <Text style={styles.badgeGray}>Dispensado</Text>}
+                              {(!subTaken && !subDelayed && !subDismissed) && <Text style={styles.badgeBlue}>Pendente</Text>}
+                            </View>
+                          </View>
                         </View>
                       </TouchableOpacity>
                     );
@@ -191,10 +201,10 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.background,
   },
   content: {
     padding: 24,
@@ -202,17 +212,17 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
-  dateText: {
+  title: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#1f2937',
-    marginBottom: 8,
+    color: theme.text,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: theme.textSecondary,
     fontWeight: '500',
   },
   listContainer: {
@@ -223,12 +233,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    color: '#6b7280',
+    color: theme.textSecondary,
     fontSize: 16,
     marginTop: 20,
   },
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.card,
     borderRadius: 20,
     padding: 20,
     shadowColor: '#000',
@@ -236,19 +246,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 3,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3b82f6',
     zIndex: 2,
   },
+  accentBar: {
+    position: 'absolute',
+    top: 16, bottom: 16, left: 0,
+    width: 5,
+    borderTopRightRadius: 4,
+    borderBottomRightRadius: 4,
+    backgroundColor: theme.primary,
+  },
   cardTaken: {
-    backgroundColor: '#ecfdf5',
-    borderLeftColor: '#10b981',
+    backgroundColor: theme.successBackground,
     shadowOpacity: 0,
     elevation: 0,
   },
   cardDelayed: {
-    backgroundColor: '#fef2f2',
-    borderLeftColor: '#ef4444',
+    backgroundColor: theme.dangerBackground,
     padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -256,11 +270,10 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: theme.dangerBackground,
   },
   cardDismissed: {
-    backgroundColor: '#f9fafb',
-    borderLeftColor: '#9ca3af',
+    backgroundColor: theme.inputBackground,
     elevation: 0,
     shadowOpacity: 0,
   },
@@ -274,7 +287,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.inputBackground,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -282,45 +295,45 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1f2937',
+    color: theme.text,
   },
-  timeTextTaken: { textDecorationLine: 'line-through', color: '#059669' },
-  timeTextDelayed: { color: '#ef4444' },
-  timeTextDismissed: { textDecorationLine: 'line-through', color: '#9ca3af' },
+  timeTextTaken: { textDecorationLine: 'line-through', color: theme.success },
+  timeTextDelayed: { color: theme.danger },
+  timeTextDismissed: { textDecorationLine: 'line-through', color: theme.textSecondary },
   checkbox: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#e5e7eb',
+    borderColor: theme.border,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
   },
   checkboxChecked: {
-    backgroundColor: '#10b981',
-    borderColor: '#10b981',
+    backgroundColor: theme.success,
+    borderColor: theme.success,
   },
   checkboxDelayed: {
-    backgroundColor: '#ef4444',
-    borderColor: '#ef4444',
+    backgroundColor: theme.danger,
+    borderColor: theme.danger,
   },
   checkboxDismissed: {
-    backgroundColor: '#f3f4f6',
-    borderColor: '#9ca3af',
+    backgroundColor: theme.inputBackground,
+    borderColor: theme.disabledText,
   },
   delayedCard: {
-    borderColor: '#fee2e2',
-    backgroundColor: '#ffffff',
+    borderColor: theme.dangerBackground,
+    backgroundColor: theme.card,
   },
   delayedText: {
-    color: '#ef4444',
+    color: theme.danger,
   },
   delayedBadge: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#ef4444',
-    backgroundColor: '#fee2e2',
+    color: theme.danger,
+    backgroundColor: theme.dangerBackground,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -336,7 +349,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#dbeafe',
+    backgroundColor: theme.infoBackground,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -346,18 +359,18 @@ const styles = StyleSheet.create({
   medName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1f2937',
+    color: theme.text,
   },
-  medNameTaken: { color: '#059669', textDecorationLine: 'line-through' },
-  medNameDelayed: { color: '#991b1b' },
-  medNameDismissed: { color: '#9ca3af', textDecorationLine: 'line-through' },
+  medNameTaken: { color: theme.success, textDecorationLine: 'line-through' },
+  medNameDelayed: { color: theme.danger },
+  medNameDismissed: { color: theme.textSecondary, textDecorationLine: 'line-through' },
   medType: {
     fontSize: 14,
-    color: '#6b7280',
+    color: theme.textSecondary,
     marginTop: 4,
     fontWeight: '500',
   },
-  medTypeTaken: { color: '#34d399' },
+  medTypeTaken: { color: theme.success },
   
   // Timeline Styles
   timelineContainer: {
@@ -378,8 +391,8 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     borderWidth: 2,
-    borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
+    borderColor: theme.border,
+    backgroundColor: theme.card,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 4,
@@ -388,25 +401,69 @@ const styles = StyleSheet.create({
   timelineLine: {
     width: 2,
     flex: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: theme.border,
     marginTop: -4,
     marginBottom: -8,
   },
   timelineContent: {
     flex: 1,
     paddingLeft: 12,
+    paddingBottom: 16,
+  },
+  timelineBox: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingBottom: 16,
+    alignItems: 'center',
+    backgroundColor: theme.background,
+    borderWidth: 1,
+    borderColor: theme.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
   timelineTime: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#4b5563',
+    color: theme.text,
   },
-  timelineStatus: {
-    fontSize: 13,
-    color: '#9ca3af',
-    fontWeight: '500',
+  badgeGreen: {
+    backgroundColor: theme.successBackground,
+    color: theme.success,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: '700',
+    overflow: 'hidden',
+  },
+  badgeGray: {
+    backgroundColor: theme.disabled,
+    color: theme.disabledText,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: '700',
+    overflow: 'hidden',
+  },
+  badgeBlue: {
+    backgroundColor: theme.infoBackground,
+    color: theme.info,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: '700',
+    overflow: 'hidden',
+  },
+  badgeRed: {
+    backgroundColor: theme.dangerBackground,
+    color: theme.danger,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: '700',
+    overflow: 'hidden',
   }
 });

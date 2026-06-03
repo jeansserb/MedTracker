@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, KeyboardAvo
 import { useRouter } from 'expo-router';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
+import { FontAwesome5 } from '@expo/vector-icons';
 import { saveMedication } from '../utils/storage';
 import { useThemeColor } from '../constants/Colors';
 
@@ -20,10 +21,16 @@ export default function AddMedicationScreen() {
 
   const [time, setTime] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
-  
+
   const [frequencyHours, setFrequencyHours] = useState('24');
   const [isContinuous, setIsContinuous] = useState(true);
-  const [durationDays, setDurationDays] = useState('5');
+  const [durationDays, setDurationDays] = useState('');
+
+  const HelpTooltip = ({ text }: { text: string }) => (
+    <TouchableOpacity onPress={() => Alert.alert('Informação', text)} style={{ marginLeft: 6 }}>
+      <FontAwesome5 name="question-circle" size={14} color={theme.textSecondary} />
+    </TouchableOpacity>
+  );
 
   const handleTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
     setShowTimePicker(false);
@@ -55,12 +62,15 @@ export default function AddMedicationScreen() {
     const minutes = time.getMinutes().toString().padStart(2, '0');
     const timeString = `${hours}:${minutes}`;
 
-    const dateString = startDate.toISOString().split('T')[0];
+    const year = startDate.getFullYear();
+    const month = String(startDate.getMonth() + 1).padStart(2, '0');
+    const day = String(startDate.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
 
-    const frequencyStr = frequencyHours === '24' ? '1x ao dia (24/24h)' : 
-                         frequencyHours === '12' ? '2x ao dia (12/12h)' :
-                         frequencyHours === '8' ? '3x ao dia (8/8h)' : '4x ao dia (6/6h)';
-                         
+    const frequencyStr = frequencyHours === '24' ? '1x ao dia (24/24h)' :
+      frequencyHours === '12' ? '2x ao dia (12/12h)' :
+        frequencyHours === '8' ? '3x ao dia (8/8h)' : '4x ao dia (6/6h)';
+
     let durationStr = 'Uso contínuo';
     if (!isContinuous) {
       const endDate = getEndDateTime();
@@ -81,18 +91,18 @@ export default function AddMedicationScreen() {
       startDate: dateString,
       durationDays: isContinuous ? undefined : parseInt(durationDays, 10) || 1,
     });
-    
+
     router.back();
   };
 
   return (
-    <KeyboardAvoidingView style={{flex: 1}} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView style={s.container} contentContainerStyle={s.content}>
-        
+
         <Text style={s.label}>Nome e Concentração</Text>
-        <TextInput 
-          style={s.input} 
-          placeholder="Ex: Ibuprofeno 600mg" 
+        <TextInput
+          style={s.input}
+          placeholder="Ex: Ibuprofeno 600mg"
           placeholderTextColor={theme.textSecondary}
           value={name}
           onChangeText={setName}
@@ -173,7 +183,10 @@ export default function AddMedicationScreen() {
         </View>
 
         <View style={s.switchContainer}>
-          <Text style={s.labelSwitch}>Uso contínuo (sem data fim)</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={s.labelSwitch}>Uso contínuo (sem data fim)</Text>
+            <HelpTooltip text="Selecione esta opção caso o medicamento seja de uso diário, sem previsão de término." />
+          </View>
           <Switch
             value={isContinuous}
             onValueChange={setIsContinuous}
@@ -185,9 +198,9 @@ export default function AddMedicationScreen() {
         {!isContinuous && (
           <View>
             <Text style={s.label}>Por quantos dias?</Text>
-            <TextInput 
-              style={s.inputPicker} 
-              placeholder="Ex: 5" 
+            <TextInput
+              style={s.inputPicker}
+              placeholder="Ex: 5"
               placeholderTextColor={theme.textSecondary}
               value={durationDays}
               onChangeText={setDurationDays}
@@ -197,11 +210,11 @@ export default function AddMedicationScreen() {
         )}
 
         {!isContinuous && durationDays !== '' && parseInt(durationDays, 10) > 0 && (
-           <View style={s.hintBox}>
-             <Text style={s.hintText}>
-               A última dose será no dia {getEndDateTime().toLocaleDateString('pt-BR')} às {getEndDateTime().getHours().toString().padStart(2, '0')}:{getEndDateTime().getMinutes().toString().padStart(2, '0')}
-             </Text>
-           </View>
+          <View style={s.hintBox}>
+            <Text style={s.hintText}>
+              A última dose será no dia {getEndDateTime().toLocaleDateString('pt-BR')} às {getEndDateTime().getHours().toString().padStart(2, '0')}:{getEndDateTime().getMinutes().toString().padStart(2, '0')}
+            </Text>
+          </View>
         )}
 
         <TouchableOpacity style={s.button} onPress={handleSave} activeOpacity={0.8}>
@@ -243,6 +256,8 @@ const styles = (theme: any) => StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: theme.text,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
   inputPicker: {
     backgroundColor: theme.inputBackground,
@@ -250,6 +265,8 @@ const styles = (theme: any) => StyleSheet.create({
     padding: 16,
     justifyContent: 'center',
     height: 55,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
   inputText: {
     fontSize: 16,
@@ -259,9 +276,12 @@ const styles = (theme: any) => StyleSheet.create({
     backgroundColor: theme.inputBackground,
     borderRadius: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: theme.border,
+    height: Platform.OS === 'ios' ? 150 : 55,
   },
   picker: {
-    height: 55,
+    height: Platform.OS === 'ios' ? 150 : 55,
     width: '100%',
     color: theme.text,
   },

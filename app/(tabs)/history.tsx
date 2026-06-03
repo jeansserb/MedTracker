@@ -92,13 +92,14 @@ const styles = (theme: any) => StyleSheet.create({
   },
   content: {
     padding: 24,
+    paddingTop: 60,
     paddingBottom: 40,
   },
   header: {
     marginBottom: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '800',
     color: theme.text,
     marginBottom: 4,

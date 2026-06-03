@@ -108,6 +108,7 @@ export default function CalendarScreen() {
 
         <View style={s.calendarCard}>
           <Calendar
+            key={theme.card}
             onDayPress={(day: any) => handleDayPress(day.dateString)}
             onMonthChange={(month: any) => setCurrentMonth({ year: month.year, month: month.month })}
             markedDates={getCalendarMarks()}
@@ -148,44 +149,114 @@ export default function CalendarScreen() {
               </View>
             ) : (
               <View style={s.listContainer}>
-                {selectedDoses.map((dose, idx) => (
-                  <TouchableOpacity 
-                    key={idx} 
-                    style={s.doseCard}
-                    activeOpacity={0.7}
-                    onPress={() => router.push({ 
-                      pathname: '/details', 
-                      params: { 
-                        medId: dose.medication.id, 
-                        scheduledTime: dose.scheduledDateTime.toISOString(),
-                        status: dose.status,
-                        isLastDose: dose.isLastDose ? 'true' : 'false'
-                      } 
-                    })}
-                  >
-                    <View style={s.doseCardHeader}>
-                      <View style={s.timeContainer}>
-                        <FontAwesome5 name="clock" size={12} color={theme.textSecondary} />
-                        <Text style={s.timeText}>
-                          {dose.scheduledDateTime.getHours().toString().padStart(2, '0')}:{dose.scheduledDateTime.getMinutes().toString().padStart(2, '0')}
-                        </Text>
-                      </View>
-                      {renderDoseStatus(dose.status)}
+                {Object.values(
+                  selectedDoses.reduce((acc, dose) => {
+                    if (!acc[dose.medication.id]) acc[dose.medication.id] = [];
+                    acc[dose.medication.id].push(dose);
+                    return acc;
+                  }, {} as Record<string, DailyDose[]>)
+                ).map((group, idx) => {
+                  const med = group[0].medication;
+                  // First dose in the group for the card
+                  const primaryDose = group[0];
+                  
+                  return (
+                    <View key={med.id} style={s.groupContainer}>
+                      <TouchableOpacity 
+                        style={s.doseCard}
+                        activeOpacity={0.7}
+                        onPress={() => router.push({ 
+                          pathname: '/details', 
+                          params: { 
+                            medId: primaryDose.medication.id, 
+                            scheduledTime: primaryDose.scheduledDateTime.toISOString(),
+                            status: primaryDose.status,
+                            isLastDose: primaryDose.isLastDose ? 'true' : 'false'
+                          } 
+                        })}
+                      >
+                        <View style={s.doseCardHeader}>
+                          <View style={s.timeContainer}>
+                            <FontAwesome5 name="clock" size={12} color={theme.textSecondary} />
+                            <Text style={s.timeText}>
+                              {primaryDose.scheduledDateTime.getHours().toString().padStart(2, '0')}:{primaryDose.scheduledDateTime.getMinutes().toString().padStart(2, '0')}
+                            </Text>
+                          </View>
+                          {renderDoseStatus(primaryDose.status)}
+                        </View>
+                        
+                        <View style={s.doseCardBody}>
+                           <View style={s.iconContainer}>
+                              <FontAwesome5 name={getMedIcon(med.type)} size={16} color={theme.primary} />
+                           </View>
+                           <View>
+                              <Text style={s.medName}>{med.name}</Text>
+                              <Text style={s.medDetails}>
+                                 {med.type ? med.type.charAt(0).toUpperCase() + med.type.slice(1) : 'Remédio'}
+                              </Text>
+                           </View>
+                        </View>
+                      </TouchableOpacity>
+
+                      {group.length > 1 && (
+                        <View style={s.timelineContainer}>
+                          {group.map((dose, dIdx) => {
+                            if (dose === primaryDose) return null;
+                            const subTaken = dose.status === 'taken';
+                            const subDelayed = dose.status === 'delayed';
+                            const subDismissed = dose.status === 'dismissed';
+
+                            return (
+                              <TouchableOpacity 
+                                key={dIdx}
+                                style={s.timelineItem}
+                                activeOpacity={0.6}
+                                onPress={() => router.push({ 
+                                  pathname: '/details', 
+                                  params: { 
+                                    medId: dose.medication.id, 
+                                    scheduledTime: dose.scheduledDateTime.toISOString(),
+                                    status: dose.status,
+                                    isLastDose: dose.isLastDose ? 'true' : 'false'
+                                  } 
+                                })}
+                              >
+                                <View style={s.timelineConnector}>
+                                  <View style={[
+                                    s.timelineDot,
+                                    subTaken && { backgroundColor: theme.success, borderColor: theme.success },
+                                    subDelayed && { backgroundColor: theme.danger, borderColor: theme.danger },
+                                    subDismissed && { backgroundColor: 'transparent', borderColor: theme.textSecondary }
+                                  ]}>
+                                    {subTaken && <FontAwesome5 name="check" size={8} color="#fff" />}
+                                    {subDismissed && <FontAwesome5 name="times" size={8} color={theme.textSecondary} />}
+                                  </View>
+                                  {dIdx !== group.length - 1 && <View style={s.timelineLine} />}
+                                </View>
+                                
+                                <View style={s.timelineContent}>
+                                  <View style={s.timelineBox}>
+                                    <Text style={[
+                                      s.timelineTime,
+                                      subTaken && { color: theme.success },
+                                      subDelayed && { color: theme.danger },
+                                      subDismissed && { color: theme.textSecondary, textDecorationLine: 'line-through' }
+                                    ]}>
+                                      {dose.scheduledDateTime.getHours().toString().padStart(2, '0')}:{dose.scheduledDateTime.getMinutes().toString().padStart(2, '0')}
+                                    </Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                      {renderDoseStatus(dose.status)}
+                                    </View>
+                                  </View>
+                                </View>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      )}
                     </View>
-                    
-                    <View style={s.doseCardBody}>
-                       <View style={s.iconContainer}>
-                          <FontAwesome5 name={getMedIcon(dose.medication.type)} size={16} color={theme.primary} />
-                       </View>
-                       <View>
-                          <Text style={s.medName}>{dose.medication.name}</Text>
-                          <Text style={s.medDetails}>
-                             {dose.medication.type ? dose.medication.type.charAt(0).toUpperCase() + dose.medication.type.slice(1) : 'Remédio'}
-                          </Text>
-                       </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                  );
+                })}
               </View>
             )}
           </View>
@@ -202,13 +273,14 @@ const styles = (theme: any) => StyleSheet.create({
   },
   content: {
     padding: 24,
+    paddingTop: 60,
     paddingBottom: 40,
   },
   header: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '800',
     color: theme.text,
     marginBottom: 4,
@@ -353,5 +425,62 @@ const styles = (theme: any) => StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     overflow: 'hidden',
+  },
+  groupContainer: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  timelineContainer: {
+    marginLeft: 24,
+    marginTop: 4,
+    paddingLeft: 12,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    minHeight: 40,
+  },
+  timelineConnector: {
+    width: 20,
+    alignItems: 'center',
+  },
+  timelineDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: theme.border,
+    backgroundColor: theme.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+    zIndex: 2,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: theme.border,
+    marginTop: -4,
+    marginBottom: -8,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingLeft: 12,
+    paddingBottom: 16,
+  },
+  timelineBox: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: theme.background,
+    borderWidth: 1,
+    borderColor: theme.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  timelineTime: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.text,
   }
 });

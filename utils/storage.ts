@@ -186,7 +186,9 @@ export const getAgendaDoses = async (): Promise<DailyDose[]> => {
 
         let doseStatus: 'pending' | 'taken' | 'dismissed' | 'delayed' = 'pending';
         
-        if (doseTime.getTime() < now.getTime()) {
+        if (doseTime.getTime() < now.getTime() - 24 * 60 * 60 * 1000) {
+           doseStatus = 'dismissed';
+        } else if (doseTime.getTime() < now.getTime()) {
            doseStatus = 'delayed';
         }
 
@@ -256,6 +258,8 @@ export const getHistoricalDosesForDate = async (targetDate: Date): Promise<Daily
         
         if (log) {
           doseStatus = log.status;
+        } else if (doseTime.getTime() < now.getTime() - 24 * 60 * 60 * 1000) {
+          doseStatus = 'dismissed';
         } else if (doseTime.getTime() < now.getTime()) {
           doseStatus = 'delayed';
         }

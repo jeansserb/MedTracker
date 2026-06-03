@@ -1,20 +1,21 @@
 {
   "expo": {
-    "name": "ControleMedicamentosApp",
-    "slug": "ControleMedicamentosApp",
+    "name": "MedTracker",
+    "slug": "MedTracker",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "controlemedicamentosapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "owner": "developing-training",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "versionCode": 2,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#10b981",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"

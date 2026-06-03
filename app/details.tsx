@@ -117,6 +117,11 @@ export default function DetailsScreen() {
     );
   };
 
+  const handleMarkDose = async (newStatus: 'taken' | 'dismissed') => {
+    await markDoseStatus(medId as string, new Date(scheduledTime as string), newStatus, isLastDose === 'true');
+    router.back();
+  };
+
   if (!medication) return <View style={s.container}><Text style={s.title}>Carregando...</Text></View>;
 
   const isDelayed = isDoseMode && new Date(scheduledTime as string).getTime() < new Date().getTime() && status !== 'taken' && status !== 'dismissed';
@@ -140,14 +145,12 @@ export default function DetailsScreen() {
         isDoseMode && status === 'taken' && s.takenCard,
         isDoseMode && status === 'dismissed' && s.dismissedCard
       ]}>
-        {!isDoseMode && (
-           <TouchableOpacity 
-             style={{ position: 'absolute', top: 20, right: 20, padding: 10 }}
-             onPress={() => router.push({ pathname: '/edit', params: { medId: medication.id } })}
-           >
-             <FontAwesome5 name="pen" size={18} color={theme.textSecondary} />
-           </TouchableOpacity>
-        )}
+        <TouchableOpacity 
+          style={{ position: 'absolute', top: 20, right: 20, padding: 15, zIndex: 10 }}
+          onPress={() => router.push({ pathname: '/edit', params: { medId: medication.id } })}
+        >
+          <FontAwesome5 name="pen" size={18} color={theme.textSecondary} />
+        </TouchableOpacity>
         <FontAwesome5 
           name={isDoseMode && status === 'taken' ? 'check-circle' : getMedIcon(medication.type)} 
           size={40} 
@@ -180,8 +183,7 @@ export default function DetailsScreen() {
           <View style={s.infoRow}>
             <Text style={s.infoLabel}>Horário da Dose:</Text>
             <Text style={s.infoValue}>
-              {new Date(scheduledTime as string).getHours().toString().padStart(2, '0')}:
-              {new Date(scheduledTime as string).getMinutes().toString().padStart(2, '0')}
+              {new Date(scheduledTime as string).toLocaleDateString('pt-BR')} às {new Date(scheduledTime as string).getHours().toString().padStart(2, '0')}:{new Date(scheduledTime as string).getMinutes().toString().padStart(2, '0')}
             </Text>
           </View>
         )}
@@ -218,7 +220,8 @@ export default function DetailsScreen() {
                        {new Date(log.scheduledDateTime).toLocaleDateString('pt-BR')} às {new Date(log.scheduledDateTime).getHours().toString().padStart(2, '0')}:{new Date(log.scheduledDateTime).getMinutes().toString().padStart(2, '0')}
                      </Text>
                      <Text style={s.logStatus}>
-                       {log.status === 'taken' ? 'Tomado' : 'Dispensado'} em {new Date(log.takenAt).toLocaleDateString('pt-BR')} {new Date(log.takenAt).getHours().toString().padStart(2, '0')}:{new Date(log.takenAt).getMinutes().toString().padStart(2, '0')}
+                       {log.status === 'taken' ? 'Tomado' : 'Dispensado'}
+                       {log.takenAt ? ` em ${new Date(log.takenAt).toLocaleDateString('pt-BR')} às ${new Date(log.takenAt).getHours().toString().padStart(2, '0')}:${new Date(log.takenAt).getMinutes().toString().padStart(2, '0')}` : ''}
                      </Text>
                    </View>
                 </View>
@@ -236,6 +239,19 @@ export default function DetailsScreen() {
            <FontAwesome5 name="undo" size={16} color="#ffffff" />
            <Text style={s.buttonText}>Desfazer Ação</Text>
         </TouchableOpacity>
+      )}
+
+      {isDoseMode && (status === 'pending' || status === 'delayed') && (
+        <>
+          <TouchableOpacity style={[s.button, s.primaryButton]} onPress={() => handleMarkDose('taken')}>
+             <FontAwesome5 name="check" size={16} color="#ffffff" />
+             <Text style={s.buttonText}>Tomar Medicamento</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.button, s.dangerOutlineButton]} onPress={() => handleMarkDose('dismissed')}>
+             <FontAwesome5 name="times" size={16} color={theme.danger} />
+             <Text style={[s.buttonText, {color: theme.danger}]}>Dispensar Dose</Text>
+          </TouchableOpacity>
+        </>
       )}
 
       {!isDoseMode && status === 'active' && (
