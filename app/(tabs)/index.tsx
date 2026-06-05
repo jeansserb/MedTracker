@@ -1,15 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { getAgendaDoses, DailyDose } from '../../utils/storage';
 import { useThemeColor } from '../../constants/Colors';
+import { getRelativeDayText, isSameDay } from '../../utils/dateHelpers';
+import { RefreshControl } from 'react-native';
+import { requestNotificationPermissions, syncMedicationNotifications } from '../../utils/notifications';
 
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useThemeColor();
   const styles = getStyles(theme);
   const [doses, setDoses] = useState<DailyDose[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const dateObj = new Date();
   const todayFormatted = dateObj.toLocaleDateString('pt-BR', {
@@ -28,6 +32,22 @@ export default function HomeScreen() {
     const todayDoses = await getAgendaDoses();
     setDoses(todayDoses);
   };
+
+  useEffect(() => {
+    const initPush = async () => {
+      const granted = await requestNotificationPermissions();
+      if (granted) {
+        await syncMedicationNotifications();
+      }
+    };
+    initPush();
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  }, []);
 
   const handlePressDose = (dose: DailyDose) => {
     router.push({
@@ -53,7 +73,19 @@ export default function HomeScreen() {
   const medGroups = Object.values(groupedDoses);
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
+    <ScrollView 
+      style={[styles.container, { backgroundColor: theme.background }]} 
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh} 
+          tintColor={theme.primary} 
+          colors={[theme.primary]} 
+          progressViewOffset={20} 
+        />
+      }
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Próximas Doses</Text>
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Sua agenda de medicamentos</Text>
@@ -61,7 +93,12 @@ export default function HomeScreen() {
 
       <View style={styles.listContainer}>
         {medGroups.length === 0 ? (
-          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Nenhuma dose pendente ou atrasada.</Text>
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Sua agenda está vazia.</Text>
+            <TouchableOpacity style={styles.emptyButton} onPress={() => router.push('/add')}>
+              <Text style={styles.emptyButtonText}>Adicionar Primeiro Medicamento</Text>
+            </TouchableOpacity>
+          </View>
         ) : null}
 
         {medGroups.map((group) => {
@@ -111,7 +148,7 @@ export default function HomeScreen() {
                       isDelayed && styles.timeTextDelayed,
                       isDismissed && styles.timeTextDismissed
                     ]}>
-                      {primaryDose.scheduledDateTime.getHours().toString().padStart(2, '0')}:{primaryDose.scheduledDateTime.getMinutes().toString().padStart(2, '0')}
+                      {getRelativeDayText(primaryDose.scheduledDateTime)}, {primaryDose.scheduledDateTime.getHours().toString().padStart(2, '0')}:{primaryDose.scheduledDateTime.getMinutes().toString().padStart(2, '0')}
                     </Text>
                   </View>
                   <View style={[
@@ -178,7 +215,7 @@ export default function HomeScreen() {
                               subDelayed && { color: theme.danger },
                               subDismissed && { color: theme.textSecondary, textDecorationLine: 'line-through' }
                             ]}>
-                              {dose.scheduledDateTime.getHours().toString().padStart(2, '0')}:{dose.scheduledDateTime.getMinutes().toString().padStart(2, '0')}
+                              {getRelativeDayText(dose.scheduledDateTime)}, {dose.scheduledDateTime.getHours().toString().padStart(2, '0')}:{dose.scheduledDateTime.getMinutes().toString().padStart(2, '0')}
                             </Text>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                               {subTaken && <Text style={styles.badgeGreen}>Tomado</Text>}
@@ -235,7 +272,24 @@ const getStyles = (theme: any) => StyleSheet.create({
     textAlign: 'center',
     color: theme.textSecondary,
     fontSize: 16,
-    marginTop: 20,
+    marginTop: 40,
+    marginBottom: 20,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyButton: {
+    backgroundColor: theme.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  emptyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
   card: {
     backgroundColor: theme.card,

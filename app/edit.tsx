@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Switch } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { AdaptiveDropdown } from '../components/AdaptiveDropdown';
 import { getMedications, updateMedication, getLogs } from '../utils/storage';
+import { syncMedicationNotifications } from '../utils/notifications';
 import { useThemeColor } from '../constants/Colors';
 
 export default function EditMedicationScreen() {
@@ -22,10 +22,8 @@ export default function EditMedicationScreen() {
 
   // Horário e Data de Início
   const [startDate, setStartDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [time, setTime] = useState(new Date());
-  const [showTimePicker, setShowTimePicker] = useState(false);
   
   // Frequência e Duração
   const [frequencyHours, setFrequencyHours] = useState('24');
@@ -73,16 +71,6 @@ export default function EditMedicationScreen() {
     };
     loadMedication();
   }, [medId]);
-
-  const handleTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShowTimePicker(false);
-    if (selectedDate) setTime(selectedDate);
-  };
-
-  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) setStartDate(selectedDate);
-  };
 
   // Cálculo preciso da data de término
   const getEndDateTime = () => {
@@ -155,6 +143,7 @@ export default function EditMedicationScreen() {
       durationDays: isContinuous ? undefined : parseInt(durationDays, 10) || 1,
     });
     
+    await syncMedicationNotifications();
     router.back();
   };
 
@@ -177,26 +166,30 @@ export default function EditMedicationScreen() {
         <View style={styles.row}>
           <View style={styles.halfWidth}>
             <Text style={styles.label}>Tipo</Text>
-            <View style={styles.pickerContainer}>
-              <Picker selectedValue={medType} onValueChange={setMedType} style={styles.picker}>
-                <Picker.Item label="Comprimido" value="comprimido" />
-                <Picker.Item label="Cápsula" value="cápsula" />
-                <Picker.Item label="Gotas" value="gotas" />
-                <Picker.Item label="Xarope" value="xarope" />
-                <Picker.Item label="Suspensão" value="suspensão" />
-                <Picker.Item label="Pomada" value="pomada" />
-                <Picker.Item label="Outro" value="outro" />
-              </Picker>
-            </View>
+            <AdaptiveDropdown
+              selectedValue={medType}
+              onValueChange={setMedType}
+              options={[
+                { label: 'Comprimido', value: 'comprimido' },
+                { label: 'Cápsula', value: 'cápsula' },
+                { label: 'Gotas', value: 'gotas' },
+                { label: 'Xarope', value: 'xarope' },
+                { label: 'Suspensão', value: 'suspensão' },
+                { label: 'Pomada', value: 'pomada' },
+                { label: 'Outro', value: 'outro' }
+              ]}
+            />
           </View>
           <View style={styles.halfWidth}>
             <Text style={styles.label}>Via de Admin.</Text>
-            <View style={styles.pickerContainer}>
-              <Picker selectedValue={route} onValueChange={setRoute} style={styles.picker}>
-                <Picker.Item label="Via Oral" value="oral" />
-                <Picker.Item label="Tópico (Pele)" value="tópico" />
-              </Picker>
-            </View>
+            <AdaptiveDropdown
+              selectedValue={route}
+              onValueChange={setRoute}
+              options={[
+                { label: 'Via Oral', value: 'oral' },
+                { label: 'Tópico (Pele)', value: 'tópico' }
+              ]}
+            />
           </View>
         </View>
 
@@ -204,7 +197,7 @@ export default function EditMedicationScreen() {
           <View style={styles.halfWidth}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                <Text style={styles.label}>Data de Início</Text>
-               <HelpTooltip text="A data de início da primeira dose não pode ser editada para não quebrar o histórico passado." />
+               <HelpTooltip text="Para manter o seu histórico de saúde preciso e seguro, a data de início não pode ser alterada. Se precisar, você pode excluir este remédio e cadastrar um novo." />
             </View>
             <View style={[styles.inputPicker, styles.disabledInput]}>
               <Text style={styles.disabledText}>{startDate.toLocaleDateString('pt-BR')}</Text>
@@ -213,7 +206,7 @@ export default function EditMedicationScreen() {
           <View style={styles.halfWidth}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                <Text style={styles.label}>Hora da 1ª Dose</Text>
-               <HelpTooltip text="A hora inicial da medicação também é permanente." />
+               <HelpTooltip text="A hora da 1ª dose determina o ciclo das próximas doses e não pode ser editada." />
             </View>
             <View style={[styles.inputPicker, styles.disabledInput]}>
               <Text style={styles.disabledText}>
@@ -225,7 +218,7 @@ export default function EditMedicationScreen() {
 
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
            <Text style={styles.label}>Frequência</Text>
-           <HelpTooltip text="A frequência de horas entre as doses (ex: de 8 em 8 horas) não pode ser alterada no histórico." />
+           <HelpTooltip text="A frequência entre as doses não pode ser alterada no histórico. Se o médico mudou a receita, exclua este e adicione um novo." />
         </View>
         <View style={[styles.inputPicker, styles.disabledInput]}>
           <Text style={styles.disabledText}>
@@ -349,19 +342,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     fontSize: 16,
     color: theme.disabledText,
   },
-  pickerContainer: {
-    backgroundColor: theme.inputBackground,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: theme.border,
-    height: Platform.OS === 'ios' ? 150 : 55,
-  },
-  picker: {
-    height: Platform.OS === 'ios' ? 150 : 55,
-    width: '100%',
-    color: theme.text,
-  },
+
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',

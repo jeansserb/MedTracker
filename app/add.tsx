@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { AdaptiveDropdown } from '../components/AdaptiveDropdown';
+import { AdaptiveDateTimePicker } from '../components/AdaptiveDateTimePicker';
 import { saveMedication } from '../utils/storage';
+import { syncMedicationNotifications } from '../utils/notifications';
 import { useThemeColor } from '../constants/Colors';
 
 export default function AddMedicationScreen() {
@@ -32,14 +33,12 @@ export default function AddMedicationScreen() {
     </TouchableOpacity>
   );
 
-  const handleTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShowTimePicker(false);
-    if (selectedDate) setTime(selectedDate);
+  const handleTimeChange = (selectedDate: Date) => {
+    setTime(selectedDate);
   };
 
-  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) setStartDate(selectedDate);
+  const handleDateChange = (selectedDate: Date) => {
+    setStartDate(selectedDate);
   };
 
   const getEndDateTime = () => {
@@ -91,7 +90,8 @@ export default function AddMedicationScreen() {
       startDate: dateString,
       durationDays: isContinuous ? undefined : parseInt(durationDays, 10) || 1,
     });
-
+    
+    await syncMedicationNotifications();
     router.back();
   };
 
@@ -111,76 +111,63 @@ export default function AddMedicationScreen() {
         <View style={s.row}>
           <View style={s.halfWidth}>
             <Text style={s.label}>Tipo</Text>
-            <View style={s.pickerContainer}>
-              <Picker selectedValue={medType} onValueChange={setMedType} style={s.picker}>
-                <Picker.Item label="Comprimido" value="comprimido" />
-                <Picker.Item label="Cápsula" value="cápsula" />
-                <Picker.Item label="Gotas" value="gotas" />
-                <Picker.Item label="Xarope" value="xarope" />
-                <Picker.Item label="Suspensão" value="suspensão" />
-                <Picker.Item label="Pomada" value="pomada" />
-                <Picker.Item label="Outro" value="outro" />
-              </Picker>
-            </View>
+            <AdaptiveDropdown
+              selectedValue={medType}
+              onValueChange={setMedType}
+              options={[
+                { label: 'Comprimido', value: 'comprimido' },
+                { label: 'Cápsula', value: 'cápsula' },
+                { label: 'Gotas', value: 'gotas' },
+                { label: 'Xarope', value: 'xarope' },
+                { label: 'Suspensão', value: 'suspensão' },
+                { label: 'Pomada', value: 'pomada' },
+                { label: 'Outro', value: 'outro' }
+              ]}
+            />
           </View>
           <View style={s.halfWidth}>
             <Text style={s.label}>Via de Admin.</Text>
-            <View style={s.pickerContainer}>
-              <Picker selectedValue={route} onValueChange={setRoute} style={s.picker}>
-                <Picker.Item label="Via Oral" value="oral" />
-                <Picker.Item label="Tópico (Pele)" value="tópico" />
-              </Picker>
-            </View>
+            <AdaptiveDropdown
+              selectedValue={route}
+              onValueChange={setRoute}
+              options={[
+                { label: 'Via Oral', value: 'oral' },
+                { label: 'Tópico (Pele)', value: 'tópico' }
+              ]}
+            />
           </View>
         </View>
 
         <View style={s.row}>
           <View style={s.halfWidth}>
             <Text style={s.label}>Data de Início</Text>
-            <TouchableOpacity style={s.inputPicker} onPress={() => setShowDatePicker(true)}>
-              <Text style={s.inputText}>{startDate.toLocaleDateString('pt-BR')}</Text>
-            </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={startDate}
-                mode="date"
-                display="default"
-                onChange={handleDateChange}
-              />
-            )}
+            <AdaptiveDateTimePicker
+              value={startDate}
+              mode="date"
+              onChange={handleDateChange}
+            />
           </View>
           <View style={s.halfWidth}>
             <Text style={s.label}>Hora da 1ª Dose</Text>
-            <TouchableOpacity style={s.inputPicker} onPress={() => setShowTimePicker(true)}>
-              <Text style={s.inputText}>
-                {time.getHours().toString().padStart(2, '0')}:{time.getMinutes().toString().padStart(2, '0')}
-              </Text>
-            </TouchableOpacity>
-            {showTimePicker && (
-              <DateTimePicker
-                value={time}
-                mode="time"
-                is24Hour={true}
-                display="default"
-                onChange={handleTimeChange}
-              />
-            )}
+            <AdaptiveDateTimePicker
+              value={time}
+              mode="time"
+              onChange={handleTimeChange}
+            />
           </View>
         </View>
 
         <Text style={s.label}>Frequência</Text>
-        <View style={s.pickerContainer}>
-          <Picker
-            selectedValue={frequencyHours}
-            onValueChange={setFrequencyHours}
-            style={s.picker}
-          >
-            <Picker.Item label="1x ao dia (a cada 24h)" value="24" />
-            <Picker.Item label="2x ao dia (a cada 12h)" value="12" />
-            <Picker.Item label="3x ao dia (a cada 8h)" value="8" />
-            <Picker.Item label="4x ao dia (a cada 6h)" value="6" />
-          </Picker>
-        </View>
+        <AdaptiveDropdown
+          selectedValue={frequencyHours}
+          onValueChange={setFrequencyHours}
+          options={[
+            { label: '1x ao dia (a cada 24h)', value: '24' },
+            { label: '2x ao dia (a cada 12h)', value: '12' },
+            { label: '3x ao dia (a cada 8h)', value: '8' },
+            { label: '4x ao dia (a cada 6h)', value: '6' }
+          ]}
+        />
 
         <View style={s.switchContainer}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -272,19 +259,7 @@ const styles = (theme: any) => StyleSheet.create({
     fontSize: 16,
     color: theme.text,
   },
-  pickerContainer: {
-    backgroundColor: theme.inputBackground,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: theme.border,
-    height: Platform.OS === 'ios' ? 150 : 55,
-  },
-  picker: {
-    height: Platform.OS === 'ios' ? 150 : 55,
-    width: '100%',
-    color: theme.text,
-  },
+
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -210,16 +210,65 @@ export const getAgendaDoses = async (): Promise<DailyDose[]> => {
 // CALENDAR & ANALYTICS ALGORITHMS
 // ==========================================
 
-export const getHistoricalDosesForDate = async (targetDate: Date): Promise<DailyDose[]> => {
-  const allMeds = await getMedications();
-  const logs = await getLogs();
+export function generateDosesForDate(med: Medication, targetDate: Date, logs: TakenLog[]): DailyDose[] {
+  const doses: DailyDose[] = [];
+  const now = new Date();
   
   const targetYear = targetDate.getFullYear();
   const targetMonth = targetDate.getMonth();
   const targetDay = targetDate.getDate();
 
+  if (!med.startDate) return [];
+
+  const [startYear, startMonth, startDay] = med.startDate.split('-').map(Number);
+  const [startHour, startMin] = med.time.split(':').map(Number);
+  
+  const startDateTime = new Date(startYear, startMonth - 1, startDay, startHour, startMin, 0, 0);
+  const targetStartOfDay = new Date(targetYear, targetMonth, targetDay, 0, 0, 0, 0);
+  const targetEndOfDay = new Date(targetYear, targetMonth, targetDay, 23, 59, 59, 999);
+  
+  const totalDosesAllowed = med.isContinuous ? Infinity : (med.durationDays || 1) * (24 / med.frequencyHours);
+  let firstDoseIndex = Math.floor((targetStartOfDay.getTime() - startDateTime.getTime()) / (med.frequencyHours * 60 * 60 * 1000));
+  if (firstDoseIndex < 0) firstDoseIndex = 0;
+
+  for (let i = firstDoseIndex; i < totalDosesAllowed; i++) {
+    const doseTime = new Date(startDateTime.getTime() + i * med.frequencyHours * 60 * 60 * 1000);
+    
+    if (doseTime.getTime() > targetEndOfDay.getTime()) break;
+
+    if (doseTime.getTime() >= targetStartOfDay.getTime()) {
+      if (med.status === 'interrupted' && doseTime.getTime() > now.getTime()) break; 
+
+      const isLastDose = !med.isContinuous && i === totalDosesAllowed - 1;
+      const doseIsoString = doseTime.toISOString();
+      const log = logs.find(l => l.medicationId === med.id && l.scheduledDateTime === doseIsoString);
+      
+      let doseStatus: 'pending' | 'taken' | 'dismissed' | 'delayed' = 'pending';
+      
+      if (log) {
+        doseStatus = log.status;
+      } else if (doseTime.getTime() < now.getTime() - 24 * 60 * 60 * 1000) {
+        doseStatus = 'dismissed';
+      } else if (doseTime.getTime() < now.getTime()) {
+        doseStatus = 'delayed';
+      }
+
+      doses.push({ medication: med, scheduledDateTime: doseTime, status: doseStatus, isLastDose });
+    }
+  }
+  return doses;
+}
+
+export const getHistoricalDosesForDate = async (targetDate: Date): Promise<DailyDose[]> => {
+  const allMeds = await getMedications();
+  const logs = await getLogs();
+  
   const dailyDoses: DailyDose[] = [];
   const now = new Date();
+  
+  const targetYear = targetDate.getFullYear();
+  const targetMonth = targetDate.getMonth();
+  const targetDay = targetDate.getDate();
 
   for (const med of allMeds) {
     if (!med.startDate) continue;

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
@@ -11,6 +11,8 @@ export default function MedicationsScreen() {
   const s = styles(theme);
   const [meds, setMeds] = useState<Medication[]>([]);
 
+  const [refreshing, setRefreshing] = useState(false);
+
   useFocusEffect(
     useCallback(() => {
       loadMedications();
@@ -21,6 +23,12 @@ export default function MedicationsScreen() {
     const data = await getMedications();
     setMeds(data.filter(m => m.status === 'active'));
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadMedications();
+    setRefreshing(false);
+  }, []);
 
   const getMedIcon = (type?: string) => {
     switch (type) {
@@ -35,7 +43,18 @@ export default function MedicationsScreen() {
 
   return (
     <View style={s.container}>
-      <ScrollView contentContainerStyle={s.content}>
+      <ScrollView 
+        contentContainerStyle={s.content}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor={theme.primary} 
+            colors={[theme.primary]} 
+            progressViewOffset={20} 
+          />
+        }
+      >
         <View style={s.header}>
           <Text style={s.title}>Meus Remédios</Text>
           <Text style={s.subtitle}>Gerencie seus tratamentos em andamento</Text>
@@ -85,12 +104,6 @@ export default function MedicationsScreen() {
           </View>
         )}
       </ScrollView>
-
-      {meds.length > 0 && (
-        <TouchableOpacity style={s.fab} activeOpacity={0.8} onPress={() => router.push('/add')}>
-          <FontAwesome5 name="plus" size={20} color="#ffffff" />
-        </TouchableOpacity>
-      )}
     </View>
   );
 }
